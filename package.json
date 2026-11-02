@@ -1,0 +1,24 @@
+{
+  "name": "marketing-task-management-system",
+  "version": "1.0.0",
+  "description": "ระบบจัดการงานการตลาด (Marketing Task Management System)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node scripts/seed.js",
+    "db:migrate": "node scripts/migrate-to-supabase.js",
+    "seed:users": "node scripts/seed-users.js"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "chart.js": "^4.6.1",
+    "express": "^4.22.3",
+    "multer": "^2.5.0"
+  }
+}
