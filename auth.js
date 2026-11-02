@@ -178,7 +178,7 @@ function recordFailure(key) {
 
 async function resolveEmail(identifier) {
   if (identifier.includes('@')) return identifier.toLowerCase();
-  const { data, error } = await db.getClient().rpc('login_email', { p_username: identifier });
+  const { data, error } = await db.getClient().rpc('login_email', { p_identifier: identifier });
   if (error) {
     console.error('แปลง username เป็นอีเมลไม่สำเร็จ (รัน supabase/schema.sql แล้วหรือยัง?):', error.message);
     return null;

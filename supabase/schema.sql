@@ -94,9 +94,11 @@ where u.email is not null
 on conflict do nothing;
 
 -- แปลง username → email ตอน login (เรียกก่อนเข้าสู่ระบบจึงต้องให้ anon เรียกได้ — คืนเฉพาะอีเมลของ username ที่ระบุ)
-create or replace function public.login_email(p_username text)
+-- drop ก่อนเพราะ create or replace เปลี่ยนชื่อพารามิเตอร์ไม่ได้ (ฐานข้อมูลเก่าอาจมี p_username) — auth.js เรียกด้วย p_identifier
+drop function if exists public.login_email(text);
+create or replace function public.login_email(p_identifier text)
 returns text language sql stable security definer set search_path = public as $$
-  select email from public.profiles where lower(username) = lower(trim(p_username)) limit 1;
+  select email from public.profiles where lower(username) = lower(trim(p_identifier)) limit 1;
 $$;
 revoke all on function public.login_email(text) from public;
 grant execute on function public.login_email(text) to anon, authenticated;
