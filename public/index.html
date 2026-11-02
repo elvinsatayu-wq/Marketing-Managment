@@ -220,7 +220,13 @@
   .c-blue .card-icon { background: var(--primary-soft); color: var(--primary); }
 
   .dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
-  .gantt-wrap { position: relative; width: 100%; }
+  /* Timeline: กล่องนอกเลื่อนแนวนอนได้ (ปัดด้วยนิ้วบนมือถือ) — กราฟกว้างอย่างน้อย 600px เพื่อไม่ให้สเกลบีบจนอ่านไม่ออก
+     Chart.js วัดขนาดจาก .gantt-wrap (parent ของ canvas) จึงต้องตั้ง min-width ที่ตัวนี้ */
+  .gantt-scroll {
+    overflow-x: auto; overflow-y: hidden; max-width: 100%;
+    -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x pan-y;
+  }
+  .gantt-wrap { position: relative; width: 100%; min-width: 600px; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
@@ -593,7 +599,7 @@
 
   /* ---------- Responsive ---------- */
   @media (max-width: 1200px) {
-    .dash-grid { grid-template-columns: 1fr; }
+    .dash-grid { grid-template-columns: minmax(0, 1fr); } /* minmax(0, …) กัน Timeline (min-width 600px) ดันหน้าให้กว้างเกินจอ */
     .budget-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 960px) {
@@ -737,7 +743,7 @@
             </div>
           </div>
           <div class="panel-body">
-            <div class="gantt-wrap" id="gantt-wrap"><canvas id="gantt"></canvas></div>
+            <div class="gantt-scroll"><div class="gantt-wrap" id="gantt-wrap"><canvas id="gantt"></canvas></div></div>
             <div class="empty" id="gantt-empty" style="display:none">ไม่มีกิจกรรมในช่วงวันที่ที่เลือก</div>
           </div>
         </div>
