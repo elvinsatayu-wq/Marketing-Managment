@@ -220,13 +220,27 @@
   .c-blue .card-icon { background: var(--primary-soft); color: var(--primary); }
 
   .dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
-  /* Timeline: กล่องนอกเลื่อนแนวนอนได้ (ปัดด้วยนิ้วบนมือถือ) — กราฟกว้างอย่างน้อย 600px เพื่อไม่ให้สเกลบีบจนอ่านไม่ออก
-     Chart.js วัดขนาดจาก .gantt-wrap (parent ของ canvas) จึงต้องตั้ง min-width ที่ตัวนี้ */
+  /* Timeline: กล่องนอกเลื่อนแนวนอนได้ (ปัดด้วยนิ้วบนมือถือ) — คอลัมน์ชื่อกิจกรรมด้านซ้ายตรึงไว้ (sticky)
+     ส่วนกราฟกว้างอย่างน้อย 600px เพื่อไม่ให้สเกลบีบ — Chart.js วัดขนาดจาก .gantt-wrap (parent ของ canvas)
+     ชื่อกิจกรรมเป็น HTML (ไม่ได้วาดในกราฟ) วางตำแหน่งตามแท่งด้วย plugin ganttLabels ใน renderGantt() */
   .gantt-scroll {
-    overflow-x: auto; overflow-y: hidden; max-width: 100%;
+    --gantt-label-w: 200px;
+    display: flex; overflow-x: auto; overflow-y: hidden; max-width: 100%;
     -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-x pan-y;
   }
-  .gantt-wrap { position: relative; width: 100%; min-width: 600px; }
+  .gantt-labels {
+    position: sticky; left: 0; z-index: 2; flex: 0 0 var(--gantt-label-w);
+    background: var(--surface); border-right: 1px solid var(--border); transition: box-shadow .15s;
+  }
+  .gantt-scroll.is-scrolled .gantt-labels { box-shadow: 6px 0 8px -6px rgba(0, 0, 0, .25); }
+  .gantt-label {
+    position: absolute; left: 0; right: 0; transform: translateY(-50%);
+    padding: 4px 10px 4px 0; font-size: 13px; line-height: 1.35; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  }
+  .gantt-label:hover, .gantt-label:focus-visible { color: var(--primary); outline: none; }
+  /* ความกว้างรวม (ชื่อ + กราฟ) อย่างน้อย 600px เท่าเดิม — จอคอมไม่ต้องเลื่อน, มือถือปัดดูได้ */
+  .gantt-wrap { position: relative; flex: 1 0 calc(600px - var(--gantt-label-w)); min-width: calc(600px - var(--gantt-label-w)); }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
@@ -602,6 +616,10 @@
     .dash-grid { grid-template-columns: minmax(0, 1fr); } /* minmax(0, …) กัน Timeline (min-width 600px) ดันหน้าให้กว้างเกินจอ */
     .budget-grid { grid-template-columns: 1fr; }
   }
+  @media (max-width: 760px) {
+    .gantt-scroll { --gantt-label-w: 128px; }
+    .gantt-label { font-size: 12px; padding-right: 8px; }
+  }
   @media (max-width: 960px) {
     .cards { grid-template-columns: repeat(2, 1fr); }
     .cards.three { grid-template-columns: 1fr; }
@@ -743,7 +761,10 @@
             </div>
           </div>
           <div class="panel-body">
-            <div class="gantt-scroll"><div class="gantt-wrap" id="gantt-wrap"><canvas id="gantt"></canvas></div></div>
+            <div class="gantt-scroll" id="gantt-scroll">
+              <div class="gantt-labels" id="gantt-labels"></div>
+              <div class="gantt-wrap" id="gantt-wrap"><canvas id="gantt"></canvas></div>
+            </div>
             <div class="empty" id="gantt-empty" style="display:none">ไม่มีกิจกรรมในช่วงวันที่ที่เลือก</div>
           </div>
         </div>
@@ -1352,12 +1373,37 @@ function renderGantt(tasks) {
   // เรียงตามวันที่เริ่มเพื่อให้อ่าน timeline ง่าย
   const rows = tasks.slice().sort((a, b) => a.startDate.localeCompare(b.startDate) || a.endDate.localeCompare(b.endDate));
   const wrap = $('#gantt-wrap');
+  const box = $('#gantt-scroll');
+  const labelBox = $('#gantt-labels');
   $('#gantt-empty').style.display = rows.length ? 'none' : 'block';
-  wrap.style.display = rows.length ? 'block' : 'none';
+  box.style.display = rows.length ? 'flex' : 'none';
   if (ganttChart) { ganttChart.destroy(); ganttChart = null; }
+  labelBox.innerHTML = '';
   if (!rows.length) return;
 
   wrap.style.height = `${Math.max(220, rows.length * 42 + 70)}px`;
+
+  // คอลัมน์ชื่อกิจกรรม (sticky ด้านซ้าย) — ตำแหน่งแนวตั้งตั้งใน plugin ganttLabels ให้ตรงกับแท่งในกราฟ
+  const labelEls = rows.map((t) => {
+    const el = document.createElement('div');
+    el.className = 'gantt-label';
+    el.tabIndex = 0;
+    el.title = t.name;
+    el.textContent = (t.urgency === 'urgent' ? '🔴 ' : '') + t.name;
+    el.addEventListener('click', () => openEdit(t));
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(t); } });
+    return el;
+  });
+  labelBox.append(...labelEls);
+  const ganttLabelsPlugin = {
+    id: 'ganttLabels',
+    afterLayout(chart) {
+      const y = chart.scales.y;
+      labelEls.forEach((el, i) => { el.style.top = `${y.getPixelForValue(i)}px`; });
+    },
+  };
+  box.onscroll = () => box.classList.toggle('is-scrolled', box.scrollLeft > 0);
+  box.onscroll();
 
   const starts = rows.map((t) => parseISO(t.startDate).getTime());
   const ends = rows.map((t) => parseISO(t.endDate).getTime() + DAY);
@@ -1367,7 +1413,7 @@ function renderGantt(tasks) {
   if ($('#filter-to').value) max = parseISO($('#filter-to').value).getTime() + DAY;
   const padding = Math.max(DAY, (max - min) * 0.02);
 
-  const labels = rows.map((t) => (t.urgency === 'urgent' ? '🔴 ' : '') + (t.name.length > 34 ? t.name.slice(0, 33) + '…' : t.name));
+  const labels = rows.map((t) => t.name); // ใช้เป็นหมวดของแกน y เท่านั้น (ซ่อนแกน แสดงชื่อใน .gantt-labels แทน)
 
   ganttChart = new Chart($('#gantt'), {
     type: 'bar',
@@ -1405,11 +1451,7 @@ function renderGantt(tasks) {
             callback: (v) => new Date(v).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
           },
         },
-        y: {
-          grid: { display: false },
-          border: { display: false },
-          ticks: { color: cssVar('--text'), font: { size: 13, family: "'IBM Plex Sans Thai', sans-serif" } },
-        },
+        y: { display: false }, // ชื่อกิจกรรมอยู่ในคอลัมน์ sticky ด้านซ้าย (.gantt-labels)
       },
       plugins: {
         legend: { display: false },
@@ -1435,7 +1477,7 @@ function renderGantt(tasks) {
         },
       },
     },
-    plugins: [todayLinePlugin],
+    plugins: [todayLinePlugin, ganttLabelsPlugin],
   });
 }
 

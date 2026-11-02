@@ -168,6 +168,7 @@ public/uploads/      ไฟล์แนบที่อัปโหลด (ตั
   - **Data ownership:** `tasks`/`media` มี `created_by`, `updated_by`; `budgets` มี `updated_by` (uuid → profiles) — API ตอบ `createdBy`, `updatedBy`, `createdByName`, `updatedByName` (`withNames()` + cache ชื่อ 60 วินาที ใน server.js); การ์ดกิจกรรม/แผนสื่อแสดงด้วย `ownerLine()`; ข้อมูลเก่าก่อนมี login = null
 - ช่องผู้รับผิดชอบเป็น tag input หลายคน (chip + datalist, Enter/เลือกจากรายการเพื่อเพิ่ม, state ใน `formOwners`); รายชื่อตั้งต้นอยู่ใน `DEFAULT_OWNERS` ใน index.html (ปัจจุบัน: ศตายุ ฉายะเวชสกุณ — กรอกอัตโนมัติเมื่อสร้างงานใหม่)
 - Gantt ใช้ Chart.js bar chart แนวนอนแบบ floating (`data: [start, end]`) บนแกน `linear` (timestamp ms) — ไม่ต้องใช้ date adapter; มี plugin `todayLine` วาดเส้นวันนี้; คลิกแท่งเพื่อเปิด modal แก้ไข
+  - เลื่อนแนวนอนได้ใน `#gantt-scroll` (ความกว้างรวมอย่างน้อย 600px); แกน y ของกราฟซ่อนอยู่ — ชื่อกิจกรรมเป็น HTML ในคอลัมน์ sticky `#gantt-labels` (กว้าง `--gantt-label-w`: 200px / 128px บนมือถือ) วางตำแหน่งให้ตรงแท่งด้วย plugin `ganttLabels` (`afterLayout` + `scales.y.getPixelForValue`) — คลิก/Enter ที่ชื่อเปิด modal แก้ไข
 - วันที่ฝั่ง client parse เป็น local time ด้วย `parseISO()` (อย่าใช้ `new Date('YYYY-MM-DD')` เพราะจะเป็น UTC)
 - UI เป็นภาษาไทยทั้งหมด, responsive ถึงจอมือถือ
 - **Dark / Light mode**: ปุ่ม `#theme-toggle` ท้าย sidebar สลับ `data-theme` บน `<html>` และจำค่าใน `localStorage('theme')` (ยังไม่เลือก = ตามธีมระบบ); script ใน `<head>` ตั้งธีมก่อน render
