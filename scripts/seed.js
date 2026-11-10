@@ -24,8 +24,10 @@ const samples = [
 ];
 
 const now = new Date().toISOString();
-const tasks = samples.map(([type, name, objective, s, e, budget, urgency, owner, status]) => ({
+const COMPANIES = ['biowood', 'woodmate', 'econic'];
+const tasks = samples.map(([type, name, objective, s, e, budget, urgency, owner, status], i) => ({
   id: crypto.randomUUID(),
+  company: COMPANIES[i % COMPANIES.length],
   type, name, objective,
   startDate: offset(s),
   endDate: offset(e),
@@ -62,8 +64,9 @@ const mediaSamples = [
 ];
 
 const MEDIA_FILE = path.join(__dirname, '..', 'data', 'media.json');
-const media = mediaSamples.map(([name, detail, mediaType, channels, purpose, d]) => ({
+const media = mediaSamples.map(([name, detail, mediaType, channels, purpose, d], i) => ({
   id: crypto.randomUUID(),
+  company: COMPANIES[i % COMPANIES.length],
   name, detail, mediaType, channels, purpose,
   status: d < 0 ? 'posted' : d <= 1 ? 'scheduled' : d <= 4 ? 'producing' : 'pending',
   postDate: offset(d),

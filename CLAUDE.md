@@ -53,6 +53,7 @@ public/uploads/      ไฟล์แนบที่อัปโหลด (ตั
 | field | ค่า |
 |---|---|
 | `id` | UUID |
+| `company` | `biowood` (Biowood) \| `woodmate` (Wood mate) \| `econic` (Econic) — บังคับตอนสร้าง; ข้อมูลเก่า = `''` (ไม่แสดง badge, บังคับเลือกเมื่อแก้ไขผ่านฟอร์ม) — ค่าใน `COMPANIES` (server.js) / `COMPANY_LABEL` (index.html), class สี `co-*` |
 | `type` | `online` \| `offline` |
 | `name`, `objective` | string |
 | `owners` | `string[]` ผู้รับผิดชอบ (อย่างน้อย 1, สูงสุด `MAX_OWNERS` = 20) — ส่งเป็น JSON string, validate ใน `parseOwners()` (ตัดตัวซ้ำ) |
@@ -93,6 +94,7 @@ public/uploads/      ไฟล์แนบที่อัปโหลด (ตั
 | field | ค่า |
 |---|---|
 | `id` | UUID |
+| `company` | เหมือน `company` ของ Task — แสดงในการ์ด, modal รายละเอียด, ปฏิทิน และแยกสีปฏิทินตามบริษัทได้ |
 | `name` | string (บังคับ) |
 | `detail` | string (ไม่บังคับ, หลายบรรทัดได้) |
 | `audience` | string กลุ่มเป้าหมายที่ต้องการสื่อสาร (ไม่บังคับ, หลายบรรทัดได้, สูงสุด 1000 ตัวอักษร) — แสดงในการ์ด Media Planner, modal รายละเอียด และค้นหาได้ |
@@ -166,7 +168,7 @@ public/uploads/      ไฟล์แนบที่อัปโหลด (ตั
   - Top bar (`#topbar` บนสุดของ `<main>`) แสดงชื่อ/อีเมล/role จาก `GET /api/auth/me` (`loadCurrentUser()`) + ปุ่มออกจากระบบ (`POST /api/auth/logout` ลบ cookie + เพิกถอน refresh token)
   - ตาราง `profiles` (id = auth.users.id, email, username, display_name, role `admin`|`marketing`) — trigger `on_auth_user_created` สร้างให้อัตโนมัติ; ทีมเห็นและแก้ไขข้อมูลของกันได้ทั้งหมด (ไม่จำกัดตามเจ้าของ)
   - **Data ownership:** `tasks`/`media` มี `created_by`, `updated_by`; `budgets` มี `updated_by` (uuid → profiles) — API ตอบ `createdBy`, `updatedBy`, `createdByName`, `updatedByName` (`withNames()` + cache ชื่อ 60 วินาที ใน server.js); การ์ดกิจกรรม/แผนสื่อแสดงด้วย `ownerLine()`; ข้อมูลเก่าก่อนมี login = null
-- ช่องผู้รับผิดชอบเป็น tag input หลายคน (chip + datalist, Enter/เลือกจากรายการเพื่อเพิ่ม, state ใน `formOwners`); รายชื่อตั้งต้นอยู่ใน `DEFAULT_OWNERS` ใน index.html (ปัจจุบัน: ศตายุ ฉายะเวชสกุณ — กรอกอัตโนมัติเมื่อสร้างงานใหม่)
+- ช่องผู้รับผิดชอบเป็น tag input หลายคน (chip + datalist, Enter/เลือกจากรายการเพื่อเพิ่ม, state ใน `formOwners`); รายชื่อตั้งต้นอยู่ใน `DEFAULT_OWNERS` ใน index.html (ปัจจุบัน: Pine, Phat, Ant — สร้างงานใหม่เริ่มจากช่องว่าง ไม่กรอกชื่อให้อัตโนมัติ)
 - Gantt ใช้ Chart.js bar chart แนวนอนแบบ floating (`data: [start, end]`) บนแกน `linear` (timestamp ms) — ไม่ต้องใช้ date adapter; มี plugin `todayLine` วาดเส้นวันนี้; คลิกแท่งเพื่อเปิด modal แก้ไข
   - เลื่อนแนวนอนได้ใน `#gantt-scroll` (ความกว้างรวมอย่างน้อย 600px); แกน y ของกราฟซ่อนอยู่ — ชื่อกิจกรรมเป็น HTML ในคอลัมน์ sticky `#gantt-labels` (กว้าง `--gantt-label-w`: 200px / 128px บนมือถือ) วางตำแหน่งให้ตรงแท่งด้วย plugin `ganttLabels` (`afterLayout` + `scales.y.getPixelForValue`) — คลิก/Enter ที่ชื่อเปิด modal แก้ไข
 - วันที่ฝั่ง client parse เป็น local time ด้วย `parseISO()` (อย่าใช้ `new Date('YYYY-MM-DD')` เพราะจะเป็น UTC)

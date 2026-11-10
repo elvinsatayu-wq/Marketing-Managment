@@ -20,6 +20,7 @@ const TYPES = ['offline', 'online'];
 const URGENCIES = ['urgent', 'normal'];
 const STATUSES = ['pending', 'in_progress', 'done'];
 const KPI_RESULTS = ['pass', 'fail'];
+const COMPANIES = ['biowood', 'woodmate', 'econic']; // ใช้ร่วมกันทั้งกิจกรรมและแผนสื่อ
 
 // Media Planner
 const MEDIA_TYPES = ['image', 'video', 'offline'];
@@ -194,11 +195,16 @@ function validateTask(body, partial = false) {
   }
   const has = (k) => body[k] !== undefined && body[k] !== '';
 
-  const need = ['type', 'name', 'objective', 'startDate', 'endDate', 'budget', 'urgency', 'owner'];
+  const need = ['company', 'type', 'name', 'objective', 'startDate', 'endDate', 'budget', 'urgency', 'owner'];
+  const missingMsg = { owner: 'กรุณาเพิ่มผู้รับผิดชอบอย่างน้อย 1 คน', company: 'กรุณาเลือกบริษัท' };
   if (!partial) {
-    for (const k of need) if (!has(k)) errors.push(k === 'owner' ? 'กรุณาเพิ่มผู้รับผิดชอบอย่างน้อย 1 คน' : `กรุณากรอก ${k}`);
+    for (const k of need) if (!has(k)) errors.push(missingMsg[k] || `กรุณากรอก ${k}`);
   }
 
+  if (has('company')) {
+    if (!COMPANIES.includes(body.company)) errors.push('บริษัทไม่ถูกต้อง');
+    else out.company = body.company;
+  }
   if (has('type')) {
     if (!TYPES.includes(body.type)) errors.push('ประเภทงานไม่ถูกต้อง');
     else out.type = body.type;
@@ -258,10 +264,14 @@ function validateMedia(body, partial = false) {
   const has = (k) => body[k] !== undefined && body[k] !== '';
 
   if (!partial) {
-    const need = [['name', 'ชื่องาน'], ['mediaType', 'ประเภทสื่อ'], ['purpose', 'วัตถุประสงค์ของสื่อ'], ['postDate', 'วันที่กำหนด Post']];
+    const need = [['company', 'บริษัท'], ['name', 'ชื่องาน'], ['mediaType', 'ประเภทสื่อ'], ['purpose', 'วัตถุประสงค์ของสื่อ'], ['postDate', 'วันที่กำหนด Post']];
     for (const [k, label] of need) if (!has(k)) errors.push(`กรุณากรอก${label}`);
   }
 
+  if (has('company')) {
+    if (!COMPANIES.includes(body.company)) errors.push('บริษัทไม่ถูกต้อง');
+    else out.company = body.company;
+  }
   if (has('name')) {
     out.name = String(body.name).trim().slice(0, 300);
     if (!out.name) errors.push('กรุณากรอกชื่องาน');

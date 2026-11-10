@@ -29,6 +29,7 @@ const iso = (v) => (v ? new Date(v).toISOString() : '');
 
 const taskToRow = (t) => ({
   id: t.id,
+  company: t.company || '',
   type: t.type,
   name: t.name,
   objective: t.objective || '',
@@ -53,6 +54,7 @@ const taskToRow = (t) => ({
 });
 const rowToTask = (r) => ({
   id: r.id,
+  company: r.company || '',
   type: r.type,
   name: r.name,
   objective: r.objective,
@@ -78,6 +80,7 @@ const rowToTask = (r) => ({
 
 const mediaToRow = (m) => ({
   id: m.id,
+  company: m.company || '',
   name: m.name,
   detail: m.detail || '',
   audience: m.audience || '',
@@ -94,6 +97,7 @@ const mediaToRow = (m) => ({
 });
 const rowToMedia = (r) => ({
   id: r.id,
+  company: r.company || '',
   name: r.name,
   detail: r.detail,
   audience: r.audience,

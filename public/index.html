@@ -114,6 +114,10 @@
   [data-theme="dark"] .ms-producing { --c: #fbbf24; --s: rgba(251, 191, 36, .14); }
   [data-theme="dark"] .ms-scheduled { --c: #60a5fa; --s: rgba(96, 165, 250, .15); }
   [data-theme="dark"] .ms-posted { --c: #4ade80; --s: rgba(74, 222, 128, .14); }
+  [data-theme="dark"] .co-biowood { --c: #fbbf24; --s: rgba(251, 191, 36, .14); }
+  [data-theme="dark"] .co-woodmate { --c: #2dd4bf; --s: rgba(45, 212, 191, .14); }
+  [data-theme="dark"] .co-econic { --c: #c084fc; --s: rgba(192, 132, 252, .15); }
+  [data-theme="dark"] .co-none { --c: #a3b1c6; --s: rgba(148, 163, 184, .14); }
   [data-theme="dark"] .ch-tiktok { --dot: #e5e7eb; }
   [data-theme="dark"] .sidebar { border-right: 1px solid var(--border); }
   [data-theme="dark"] .toast { border: 1px solid var(--border); }
@@ -239,6 +243,8 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
   }
   .gantt-label:hover, .gantt-label:focus-visible { color: var(--primary); outline: none; }
+  .gantt-name { display: block; overflow: hidden; text-overflow: ellipsis; }
+  .gantt-co { display: block; font-size: 11px; line-height: 1.2; font-weight: 600; color: var(--c); }
   /* ความกว้างรวม (ชื่อ + กราฟ) อย่างน้อย 600px เท่าเดิม — จอคอมไม่ต้องเลื่อน, มือถือปัดดูได้ */
   .gantt-wrap { position: relative; flex: 1 0 calc(600px - var(--gantt-label-w)); min-width: calc(600px - var(--gantt-label-w)); }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
@@ -416,6 +422,10 @@
   .ms-producing { --c: #d97706; --s: #fff4e0; }
   .ms-scheduled { --c: #2563eb; --s: #e8effd; }
   .ms-posted { --c: #166534; --s: #dcefe2; }
+  .co-biowood { --c: #a16207; --s: #fdf3d7; }
+  .co-woodmate { --c: #0f766e; --s: #dcf5f1; }
+  .co-econic { --c: #7c3aed; --s: #f1e9fe; }
+  .co-none { --c: #64748b; --s: #f1f5f9; }
   .select.ms-sel { border-color: var(--c); color: var(--c); background-color: var(--s); font-weight: 600; }
   .tone { background: var(--s); color: var(--c); }
   .ch-facebook { --dot: #1877f2; }
@@ -488,7 +498,7 @@
   .cal-ev:hover { box-shadow: 0 0 0 1px var(--c); }
   .cal-ev.past { opacity: .6; }
   .cal-ev-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cal-ev-tags, .cal-ev-ch { display: block; font-size: 11px; color: var(--c); font-weight: 600; }
+  .cal-ev-tags, .cal-ev-ch, .cal-ev-co { display: block; font-size: 11px; color: var(--c); font-weight: 600; }
   .cal-ev-ch { color: var(--muted); font-weight: 400; }
   .cal.week .cal-ev { padding: 6px 8px; }
   .cal.week .cal-ev-name { white-space: normal; font-weight: 500; }
@@ -646,7 +656,7 @@
     .cal-day { min-height: 58px; padding: 4px; }
     .cal.month .cal-evs { flex-direction: row; flex-wrap: wrap; gap: 3px; }
     .cal.month .cal-ev { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: var(--c); }
-    .cal.month .cal-ev-name, .cal.month .cal-more, .cal.month .cal-add { display: none; }
+    .cal.month .cal-ev-name, .cal.month .cal-ev-co, .cal.month .cal-more, .cal.month .cal-add { display: none; }
     .cal.week .cal-add { opacity: 1; }
     .cal.week { grid-template-columns: 1fr; }
     .cal.week .cal-dow { display: none; }
@@ -803,6 +813,7 @@
                 <button class="chip active" data-color="mediaType">ประเภทสื่อ</button>
                 <button class="chip" data-color="purpose">วัตถุประสงค์</button>
                 <button class="chip" data-color="status">สถานะ</button>
+                <button class="chip" data-color="company">บริษัท</button>
               </div>
               <div class="legend" id="cal-legend"></div>
             </div>
@@ -966,6 +977,10 @@
     <div class="modal-body">
       <div class="form-error" id="form-error"></div>
       <div class="form-grid">
+        <div class="field full">
+          <label>บริษัท <span class="req">*</span></label>
+          <div class="seg three toned" id="f-company"></div>
+        </div>
         <div class="field">
           <label>ประเภทงาน <span class="req">*</span></label>
           <div class="seg">
@@ -1083,6 +1098,10 @@
       <div class="form-error" id="mf-error"></div>
       <div class="form-grid">
         <div class="field full">
+          <label>บริษัท <span class="req">*</span></label>
+          <div class="seg three toned" id="mf-company"></div>
+        </div>
+        <div class="field full">
           <label for="mf-name">ชื่องาน <span class="req">*</span></label>
           <input class="input" id="mf-name" required placeholder="เช่น โปสเตอร์โปรโมชั่น 11.11">
         </div>
@@ -1131,6 +1150,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const COMPANY_LABEL = { biowood: 'Biowood', woodmate: 'Wood mate', econic: 'Econic' };
 const LABEL = {
   type: { online: 'ออนไลน์', offline: 'ออฟไลน์' },
   urgency: { urgent: 'ด่วนมาก', normal: 'ปกติ' },
@@ -1144,13 +1164,16 @@ const MEDIA_LABEL = {
   purpose: { sale: 'Sale Content', value: 'Value Content', news: 'News Content' },
   status: { pending: 'In plan', producing: 'In Production', scheduled: 'Scheduled', posted: 'Published' },
   channel: { facebook: 'Facebook', instagram: 'IG', tiktok: 'TikTok', website: 'เว็บไซต์', billboard: 'ป้ายโฆษณา' },
+  company: COMPANY_LABEL,
 };
 // class สีของ badge/ปฏิทิน เช่น tone('mediaType', 'video') → 'mt-video', tone('status', 'posted') → 'ms-posted'
-const TONE_PREFIX = { mediaType: 'mt', purpose: 'pp', status: 'ms' };
+const TONE_PREFIX = { mediaType: 'mt', purpose: 'pp', status: 'ms', company: 'co' };
 const tone = (field, v) => `${TONE_PREFIX[field]}-${v}`;
+// badge บริษัทของกิจกรรม/แผนสื่อ (ข้อมูลเก่าที่ยังไม่ระบุบริษัทจะไม่แสดง)
+const companyBadge = (x) => x.company ? `<span class="badge tone ${tone('company', x.company)}">${COMPANY_LABEL[x.company]}</span>` : '';
 const DOW = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 // รายชื่อผู้รับผิดชอบตั้งต้น (ชื่อแรกจะถูกกรอกให้อัตโนมัติเมื่อสร้างงานใหม่)
-const DEFAULT_OWNERS = ['ศตายุ ฉายะเวชสกุณ'];
+const DEFAULT_OWNERS = ['Pine', 'Phat', 'Ant'];
 // ผู้รับผิดชอบหลายคน (งานเก่าที่มีแค่ owner ใช้ค่า owner)
 const taskOwners = (t) => t.owners?.length ? t.owners : (t.owner ? [t.owner] : []);
 const BAR_COLOR ={ on_track: '#4A943E', near_due: '#f59e0b', overdue: '#ef4444', done: '#94a3b8' };
@@ -1388,8 +1411,8 @@ function renderGantt(tasks) {
     const el = document.createElement('div');
     el.className = 'gantt-label';
     el.tabIndex = 0;
-    el.title = t.name;
-    el.textContent = (t.urgency === 'urgent' ? '🔴 ' : '') + t.name;
+    el.title = t.company ? `${COMPANY_LABEL[t.company]} · ${t.name}` : t.name;
+    el.innerHTML = `${t.company ? `<span class="gantt-co ${tone('company', t.company)}">${COMPANY_LABEL[t.company]}</span>` : ''}<span class="gantt-name">${t.urgency === 'urgent' ? '🔴 ' : ''}${esc(t.name)}</span>`;
     el.addEventListener('click', () => openEdit(t));
     el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(t); } });
     return el;
@@ -1466,6 +1489,7 @@ function renderGantt(tasks) {
             label: (item) => {
               const t = rows[item.dataIndex];
               return [
+                ...(t.company ? [`บริษัท: ${COMPANY_LABEL[t.company]}`] : []),
                 `${fmtDate(t.startDate)} – ${fmtDate(t.endDate)}`,
                 `ประเภท: ${LABEL.type[t.type]} · ${LABEL.urgency[t.urgency]}`,
                 `ผู้รับผิดชอบ: ${t.owner}`,
@@ -1490,6 +1514,7 @@ function renderWatchList(tasks) {
       <li data-id="${t.id}">
         <div class="w-name">${esc(t.name)}</div>
         <div class="w-meta">
+          ${companyBadge(t)}
           <span class="badge b-${t.dueState}">${dueText(t)}</span>
           ${t.urgency === 'urgent' ? '<span class="badge b-urgent">ด่วนมาก</span>' : ''}
           <span>${esc(t.owner)}</span>
@@ -1560,6 +1585,7 @@ function renderDueAlert() {
       <ul>${dueAlertTasks.map((t) => `
         <li data-kind="task" data-id="${t.id}">
           <span class="da-kind">กิจกรรม</span>
+          ${companyBadge(t)}
           ${t.urgency === 'urgent' ? '<span class="badge b-urgent">ด่วนมาก</span>' : ''}
           <b>${esc(t.name)}</b>
           <span class="da-status">${LABEL.status[t.status]}</span>
@@ -1567,6 +1593,7 @@ function renderDueAlert() {
         </li>`).join('')}${dueAlertMedia.map((m) => `
         <li data-kind="media" data-id="${m.id}">
           <span class="da-kind">แผนสื่อ</span>
+          ${companyBadge(m)}
           ${mediaBadges(m, ['mediaType'])}
           <b>${esc(m.name)}</b>
           <span class="da-status">${MEDIA_LABEL.status[m.status]}</span>
@@ -1606,6 +1633,7 @@ function renderOwnerList() {
   const names = [...new Set([...DEFAULT_OWNERS, ...allTasks.flatMap(taskOwners)])];
   $('#owner-list').innerHTML = names.map((o) => `<option value="${esc(o)}">`).join('');
 }
+renderOwnerList(); // ให้เลือกรายชื่อตั้งต้นได้ทันที แม้เปิดฟอร์มจาก Dashboard โดยยังไม่เข้าหน้ากิจกรรม
 
 // ---------- ช่องผู้รับผิดชอบ (หลายคน) ----------
 let formOwners = [];
@@ -1666,6 +1694,7 @@ function renderTaskList() {
       <div class="task-bar"></div>
       <div>
         <div class="task-top">
+          ${companyBadge(t)}
           <span class="badge b-${t.urgency}">${LABEL.urgency[t.urgency]}</span>
           <span class="badge b-${t.type}">${LABEL.type[t.type]}</span>
           <span class="badge b-${t.dueState}">${dueText(t)}</span>
@@ -1742,6 +1771,8 @@ $('#task-list').addEventListener('change', async (e) => {
 });
 
 $('#f-kpi-result').innerHTML = kpiResultOptions('');
+$('#f-company').innerHTML = Object.entries(COMPANY_LABEL).map(([v, l]) =>
+  `<input type="radio" name="company" id="company-${v}" value="${v}"><label for="company-${v}" class="${tone('company', v)}">${l}</label>`).join('');
 
 // ---------- Modal form ----------
 const form = $('#task-form');
@@ -1762,7 +1793,7 @@ $('#btn-new').addEventListener('click', () => {
   $('#status-field').style.display = 'none';
   $('#f-progress-at').textContent = '';
   $('#f-start').value = toISO(today());
-  setOwners([DEFAULT_OWNERS[0]]);
+  setOwners([]);
   renderLinkRows('#link-rows', []);
   renderBudgetItems([]);
   openModal();
@@ -1772,6 +1803,7 @@ function openEdit(task) {
   if (!task) return;
   editing = task;
   form.reset();
+  form.company.value = task.company || '';
   form.type.value = task.type;
   form.urgency.value = task.urgency;
   form.name.value = task.name;
@@ -1918,6 +1950,7 @@ function showFormError(msg) {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (!form.company.value) return showFormError('กรุณาเลือกบริษัท');
   const fields = ['name', 'objective', 'startDate', 'endDate', 'budget'];
   const missing = fields.filter((f) => !form[f].value.trim());
   if (missing.length) {
@@ -1937,6 +1970,7 @@ form.addEventListener('submit', async (e) => {
   if (linkError) return showFormError(linkError);
 
   const fd = new FormData();
+  fd.append('company', form.company.value);
   fd.append('type', form.type.value);
   fd.append('urgency', form.urgency.value);
   fields.forEach((f) => fd.append(f, form[f].value.trim()));
@@ -2009,9 +2043,13 @@ async function loadCalendar() {
   }
 }
 
+// ค่าที่ใช้แยกสีในปฏิทิน — แผนสื่อเก่าที่ยังไม่ระบุบริษัทใช้ 'none'
+const calColorValue = (m) => (cal.colorBy === 'company' ? m.company || 'none' : m[cal.colorBy]);
+
 function calEvent(m) {
   const week = cal.view === 'week';
-  return `<button type="button" class="cal-ev ${tone(cal.colorBy, m[cal.colorBy])} ${daysLeft(m.postDate) < 0 ? 'past' : ''}" data-id="${m.id}" title="${esc(m.name)}">
+  return `<button type="button" class="cal-ev ${tone(cal.colorBy, calColorValue(m))} ${daysLeft(m.postDate) < 0 ? 'past' : ''}" data-id="${m.id}" title="${m.company ? `${COMPANY_LABEL[m.company]} · ` : ''}${esc(m.name)}">
+    ${m.company ? `<span class="cal-ev-co ${tone('company', m.company)}">${COMPANY_LABEL[m.company]}</span>` : ''}
     ${week ? `<span class="cal-ev-tags">${MEDIA_LABEL.status[m.status]} · ${MEDIA_LABEL.mediaType[m.mediaType]} · ${MEDIA_LABEL.purpose[m.purpose]}</span>` : ''}
     <span class="cal-ev-name">${esc(m.name)}</span>
     ${week ? `<span class="cal-ev-ch">${m.channels.map((c) => MEDIA_LABEL.channel[c]).join(', ')}</span>` : ''}
@@ -2034,8 +2072,9 @@ function renderCalendar(start, end) {
     return `<button type="button" class="ms-stat ${tone('status', k)}" data-status="${k}" title="ดูรายการ${l}ใน Media Planner">
       <span>${l}</span><b>${items.length}</b><small>${late ? `เลยวันโพสต์ ${late} รายการ` : ''}</small></button>`;
   }).join('');
-  $('#cal-legend').innerHTML = Object.entries(MEDIA_LABEL[cal.colorBy]).map(([k, l]) =>
-    `<span class="${tone(cal.colorBy, k)}"><i style="background:var(--c)"></i>${l} (${inView.filter((m) => m[cal.colorBy] === k).length})</span>`).join('');
+  const legendLabels = { ...MEDIA_LABEL[cal.colorBy], ...(cal.colorBy === 'company' && inView.some((m) => !m.company) ? { none: 'ไม่ระบุ' } : {}) };
+  $('#cal-legend').innerHTML = Object.entries(legendLabels).map(([k, l]) =>
+    `<span class="${tone(cal.colorBy, k)}"><i style="background:var(--c)"></i>${l} (${inView.filter((m) => calColorValue(m) === k).length})</span>`).join('');
 
   const byDay = {};
   for (const m of cal.items) (byDay[m.postDate] ||= []).push(m);
@@ -2171,6 +2210,7 @@ function mediaItem(m) {
       </div>
       <div style="min-width:0">
         <div class="task-top">
+          ${companyBadge(m)}
           ${mediaBadges(m, ['mediaType', 'purpose'])}
           ${left >= 0 && left <= 7 ? `<span class="badge ${left <= 1 ? 'b-overdue' : 'b-near_due'}">${relDay(m.postDate)}</span>` : ''}
         </div>
@@ -2238,7 +2278,7 @@ function openMediaView(m) {
   viewingMedia = m;
   $('#mv-title').textContent = m.name;
   $('#mv-body').innerHTML = `
-    <div class="task-top" style="margin-bottom:16px">${mediaBadges(m)}</div>
+    <div class="task-top" style="margin-bottom:16px">${companyBadge(m)}${mediaBadges(m)}</div>
     <dl class="view-meta" style="margin:0">
       <dt>วันที่กำหนด Post</dt><dd><b>${fmtDateLong(m.postDate)}</b> <span style="color:var(--muted)">(${relDay(m.postDate)})</span></dd>
       <dt>ช่องทาง</dt><dd>${channelChips(m)}</dd>
@@ -2258,7 +2298,7 @@ const mform = $('#media-form');
 let editingMedia = null;
 
 // สร้างตัวเลือก radio / checkbox จาก MEDIA_LABEL
-[['mediaType', '#mf-type'], ['purpose', '#mf-purpose'], ['status', '#mf-status']].forEach(([field, id]) => {
+[['company', '#mf-company'], ['mediaType', '#mf-type'], ['purpose', '#mf-purpose'], ['status', '#mf-status']].forEach(([field, id]) => {
   $(id).innerHTML = Object.entries(MEDIA_LABEL[field]).map(([v, l]) =>
     `<input type="radio" name="${field}" id="mf-${field}-${v}" value="${v}"><label for="mf-${field}-${v}" class="${tone(field, v)}">${l}</label>`).join('');
 });
@@ -2273,6 +2313,7 @@ function openMediaForm(item, date) {
     $('#mf-name').value = item.name;
     $('#mf-detail').value = item.detail || '';
     $('#mf-audience').value = item.audience || '';
+    if (item.company) $(`#mf-company-${item.company}`).checked = true;
     $(`#mf-mediaType-${item.mediaType}`).checked = true;
     $(`#mf-purpose-${item.purpose}`).checked = true;
     $(`#mf-status-${item.status || 'pending'}`).checked = true;
@@ -2301,6 +2342,7 @@ function showMediaError(msg) {
 mform.addEventListener('submit', async (e) => {
   e.preventDefault();
   const body = {
+    company: mform.querySelector('input[name="company"]:checked')?.value,
     name: $('#mf-name').value.trim(),
     detail: $('#mf-detail').value.trim(),
     audience: $('#mf-audience').value.trim(),
@@ -2310,6 +2352,7 @@ mform.addEventListener('submit', async (e) => {
     channels: [...mform.querySelectorAll('input[name="channels"]:checked')].map((i) => i.value),
     postDate: $('#mf-date').value,
   };
+  if (!body.company) return showMediaError('กรุณาเลือกบริษัท');
   if (!body.name) { $('#mf-name').focus(); return showMediaError('กรุณากรอกชื่องาน'); }
   if (!body.channels.length) return showMediaError('กรุณาเลือกช่องทางอย่างน้อย 1 ช่องทาง');
   if (!body.postDate) { $('#mf-date').focus(); return showMediaError('กรุณาเลือกวันที่กำหนด Post'); }

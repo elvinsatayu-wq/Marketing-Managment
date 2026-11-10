@@ -103,6 +103,11 @@ $$;
 revoke all on function public.login_email(text) from public;
 grant execute on function public.login_email(text) to anon, authenticated;
 
+-- ---------- บริษัท (กิจกรรม + แผนสื่อ) ----------
+-- '' = ข้อมูลเก่าที่ยังไม่ได้ระบุบริษัท
+alter table public.tasks add column if not exists company text not null default '' check (company in ('', 'biowood', 'woodmate', 'econic'));
+alter table public.media add column if not exists company text not null default '' check (company in ('', 'biowood', 'woodmate', 'econic'));
+
 -- ---------- ผู้สร้าง / ผู้แก้ไขล่าสุด (Data Ownership) ----------
 -- server ส่ง id ของผู้ใช้ที่ login มาให้ทุกครั้ง (ค่าเริ่มต้น auth.uid() กันกรณีเขียนตรงจาก client อื่น)
 -- ข้อมูลเก่าก่อนมีระบบ login = null
