@@ -28,7 +28,7 @@ const COMPANIES = ['biowood', 'woodmate', 'econic'];
 const tasks = samples.map(([type, name, objective, s, e, budget, urgency, owner, status], i) => ({
   id: crypto.randomUUID(),
   company: COMPANIES[i % COMPANIES.length],
-  type, name, objective,
+  types: type === 'online' ? ['marketing', 'content'] : ['marketing', 'graphic'], name, objective,
   startDate: offset(s),
   endDate: offset(e),
   budget, urgency, owner, status,

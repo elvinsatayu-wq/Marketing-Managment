@@ -54,7 +54,8 @@ public/uploads/      ไฟล์แนบที่อัปโหลด (ตั
 |---|---|
 | `id` | UUID |
 | `company` | `biowood` (Biowood) \| `woodmate` (Wood mate) \| `econic` (Econic) — บังคับตอนสร้าง; ข้อมูลเก่า = `''` (ไม่แสดง badge, บังคับเลือกเมื่อแก้ไขผ่านฟอร์ม) — ค่าใน `COMPANIES` (server.js) / `COMPANY_LABEL` (index.html), class สี `co-*` |
-| `type` | `online` \| `offline` |
+| `types` | `string[]` ประเภทงาน เลือกได้หลายข้อ (อย่างน้อย 1): `marketing` (การตลาด) \| `content` (คอนเทนต์) \| `graphic` (กราฟฟิก) \| `it` (ไอที) — ส่งเป็น JSON string, validate ใน `parseTaskTypes()` (ตัดตัวซ้ำ + เรียงตาม `TASK_TYPES`); ป้ายใน `LABEL.type`, สี class `tt-*`; หน้ารายการกรองด้วย `#f-type` (งานที่มีประเภทนั้นอยู่ใน `types`) |
+| `type` | (เลิกใช้) `online` \| `offline` ของงานเก่า — คอลัมน์ยังอยู่แต่ไม่แสดง; งานเก่าไม่มี `types` → ไม่มี badge และต้องเลือกประเภทเมื่อแก้ไขผ่านฟอร์ม (client ใช้ `taskTypes(t)`) |
 | `name`, `objective` | string |
 | `owners` | `string[]` ผู้รับผิดชอบ (อย่างน้อย 1, สูงสุด `MAX_OWNERS` = 20) — ส่งเป็น JSON string, validate ใน `parseOwners()` (ตัดตัวซ้ำ) |
 | `owner` | string = `owners.join(', ')` — server ตั้งให้อัตโนมัติ เก็บไว้เพื่อให้การแสดงผล/ค้นหาเดิมทำงานได้; งานเก่าที่ไม่มี `owners` ฝั่ง client ใช้ `taskOwners(t)` |
@@ -162,7 +163,7 @@ public/uploads/      ไฟล์แนบที่อัปโหลด (ตั
 - ไฟล์ประเภทสคริปต์/HTML (`BLOCKED_EXT`) ถูกปฏิเสธ เพราะ `public/uploads` เสิร์ฟเป็น static
 - การเขียน `data/*.json` (โหมด fallback) ใช้ write-tmp-then-rename; ไม่มี locking
 - **ระบบ Login (Supabase Auth, `auth.js`)** — เปิดอัตโนมัติเมื่อตั้งค่า Supabase; โหมดไฟล์ JSON ไม่มี login (ทุกคนเข้าได้)
-  - `POST /api/auth/login` `{ identifier, password }` — identifier เป็นอีเมลหรือ username (แปลงด้วย RPC `login_email()`); สำเร็จ → cookie httpOnly `mms_access` + `mms_refresh`; ผิดเกิน 10 ครั้ง/15 นาที (ต่อ IP+บัญชี) ตอบ 429
+  - `POST /api/auth/login` `{ identifier, password }` — identifier เป็นอีเมลหรือ username (ค้นจาก `profiles.username`/`profiles.email` ด้วย RPC `login_email()` เท่านั้น ห้ามใช้ `display_name`); สำเร็จ → cookie httpOnly `mms_access` + `mms_refresh`; ผิดเกิน 10 ครั้ง/15 นาที (ต่อ IP+บัญชี) ตอบ 429
   - `authenticate` ตรวจ token ด้วย `auth.getUser()` (cache 5 นาที), refresh อัตโนมัติเมื่อเหลือ < 60 วินาที (รวม request ที่ refresh พร้อมกันเป็นครั้งเดียว เพราะ refresh token ใช้ได้ครั้งเดียว) → `req.user = { id, email, username, displayName, role }`, `req.db`
   - `requireApiAuth`: `/api/*` ที่ยังไม่ login → 401 `{ error, code: 'UNAUTHENTICATED' }` (ฝั่ง client `api()` เจอ 401 → ไป `/login`); `pageGuard`: `/` → redirect `/login`, `/uploads/*` → 401, `/login` เมื่อ login แล้ว → `/`
   - Top bar (`#topbar` บนสุดของ `<main>`) แสดงชื่อ/อีเมล/role จาก `GET /api/auth/me` (`loadCurrentUser()`) + ปุ่มออกจากระบบ (`POST /api/auth/logout` ลบ cookie + เพิกถอน refresh token)

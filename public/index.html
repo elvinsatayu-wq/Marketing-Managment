@@ -43,6 +43,8 @@
     --blue-soft: #e5f4fc;
     --purple: #9333ea;
     --purple-soft: #f3e8ff;
+    --pink: #db2777;
+    --pink-soft: #fce7f3;
     --primary-solid: #4A943E;
     --primary-solid-hover: #3d7d33;
     --red-border: #f5c2c2;
@@ -87,6 +89,8 @@
     --blue-soft: rgba(56, 189, 248, .14);
     --purple: #c084fc;
     --purple-soft: rgba(192, 132, 252, .15);
+    --pink: #f472b6;
+    --pink-soft: rgba(244, 114, 182, .15);
     --primary-solid: #4A943E;
     --primary-solid-hover: #58a84b;
     --red-border: rgba(248, 113, 113, .45);
@@ -297,8 +301,12 @@
   .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
   .b-urgent { background: var(--red-soft); color: var(--red); }
   .b-normal { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
-  .b-online { background: var(--blue-soft); color: var(--blue); }
-  .b-offline { background: var(--purple-soft); color: var(--purple); }
+  /* ประเภทงาน (tt-*) — --dot ใช้กับปุ่มเลือกในฟอร์ม (.checks) */
+  .tt-marketing { --dot: var(--blue); --tt-s: var(--blue-soft); }
+  .tt-content { --dot: var(--purple); --tt-s: var(--purple-soft); }
+  .tt-graphic { --dot: var(--pink); --tt-s: var(--pink-soft); }
+  .tt-it { --dot: var(--amber); --tt-s: var(--amber-soft); }
+  .badge.tt { background: var(--tt-s); color: var(--dot); }
   .b-done { background: var(--green-soft); color: var(--green); }
   .b-overdue { background: var(--red-soft); color: var(--red); }
   .b-near_due { background: var(--amber-soft); color: var(--amber); }
@@ -840,9 +848,11 @@
       <div class="filter-bar" style="margin-bottom:16px">
         <input type="search" class="input" id="search" placeholder="ค้นหาชื่องาน / ผู้รับผิดชอบ..." style="min-width:260px">
         <select class="select" id="f-type">
-          <option value="">ทุกประเภท</option>
-          <option value="online">ออนไลน์</option>
-          <option value="offline">ออฟไลน์</option>
+          <option value="">ทุกประเภทงาน</option>
+          <option value="marketing">การตลาด</option>
+          <option value="content">คอนเทนต์</option>
+          <option value="graphic">กราฟฟิก</option>
+          <option value="it">ไอที</option>
         </select>
         <select class="select" id="f-status">
           <option value="">ทุกสถานะ</option>
@@ -982,11 +992,8 @@
           <div class="seg three toned" id="f-company"></div>
         </div>
         <div class="field">
-          <label>ประเภทงาน <span class="req">*</span></label>
-          <div class="seg">
-            <input type="radio" name="type" id="type-online" value="online" checked><label for="type-online">ออนไลน์</label>
-            <input type="radio" name="type" id="type-offline" value="offline"><label for="type-offline">ออฟไลน์</label>
-          </div>
+          <label>ประเภทงาน <span class="req">*</span> <span style="font-weight:400;color:var(--muted)">(เลือกได้มากกว่า 1)</span></label>
+          <div class="checks" id="f-types"></div>
         </div>
         <div class="field">
           <label>ความเร่งด่วน <span class="req">*</span></label>
@@ -1152,7 +1159,7 @@
 <script>
 const COMPANY_LABEL = { biowood: 'Biowood', woodmate: 'Wood mate', econic: 'Econic' };
 const LABEL = {
-  type: { online: 'ออนไลน์', offline: 'ออฟไลน์' },
+  type: { marketing: 'การตลาด', content: 'คอนเทนต์', graphic: 'กราฟฟิก', it: 'ไอที' },
   urgency: { urgent: 'ด่วนมาก', normal: 'ปกติ' },
   status: { pending: 'รอดำเนินการ', in_progress: 'กำลังดำเนินการ', done: 'เสร็จแล้ว' },
   due: { done: 'เสร็จแล้ว', overdue: 'เลยกำหนด', near_due: 'ใกล้ถึงกำหนด', on_track: 'ตามแผน' },
@@ -1171,6 +1178,9 @@ const TONE_PREFIX = { mediaType: 'mt', purpose: 'pp', status: 'ms', company: 'co
 const tone = (field, v) => `${TONE_PREFIX[field]}-${v}`;
 // badge บริษัทของกิจกรรม/แผนสื่อ (ข้อมูลเก่าที่ยังไม่ระบุบริษัทจะไม่แสดง)
 const companyBadge = (x) => x.company ? `<span class="badge tone ${tone('company', x.company)}">${COMPANY_LABEL[x.company]}</span>` : '';
+// ประเภทงาน (เลือกได้หลายข้อ) — งานเก่าที่เป็น online/offline ไม่มี types → []
+const taskTypes = (t) => (t.types || []).filter((v) => LABEL.type[v]);
+const typeBadges = (t) => taskTypes(t).map((v) => `<span class="badge tt tt-${v}">${LABEL.type[v]}</span>`).join('');
 const DOW = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 // รายชื่อผู้รับผิดชอบตั้งต้น (ชื่อแรกจะถูกกรอกให้อัตโนมัติเมื่อสร้างงานใหม่)
 const DEFAULT_OWNERS = ['Pine', 'Phat', 'Ant'];
@@ -1491,7 +1501,7 @@ function renderGantt(tasks) {
               return [
                 ...(t.company ? [`บริษัท: ${COMPANY_LABEL[t.company]}`] : []),
                 `${fmtDate(t.startDate)} – ${fmtDate(t.endDate)}`,
-                `ประเภท: ${LABEL.type[t.type]} · ${LABEL.urgency[t.urgency]}`,
+                `ประเภท: ${taskTypes(t).map((v) => LABEL.type[v]).join(', ') || '-'} · ${LABEL.urgency[t.urgency]}`,
                 `ผู้รับผิดชอบ: ${t.owner}`,
                 `สถานะ: ${LABEL.status[t.status]} (${dueText(t)})`,
                 `งบประมาณ: ${fmtMoney(t.budget)} บาท`,
@@ -1679,7 +1689,7 @@ function renderTaskList() {
   const status = $('#f-status').value;
   const list = allTasks.filter((t) =>
     (!q || [t.name, t.owner, t.objective, t.kpi || '', ...(t.links || []).map((l) => `${l.label} ${l.url}`)].some((s) => s.toLowerCase().includes(q))) &&
-    (!type || t.type === type) &&
+    (!type || taskTypes(t).includes(type)) &&
     (!status || (status === 'overdue' ? t.dueState === 'overdue' : t.status === status)));
 
   $('#list-count').textContent = `${list.length} จาก ${allTasks.length} รายการ`;
@@ -1696,7 +1706,7 @@ function renderTaskList() {
         <div class="task-top">
           ${companyBadge(t)}
           <span class="badge b-${t.urgency}">${LABEL.urgency[t.urgency]}</span>
-          <span class="badge b-${t.type}">${LABEL.type[t.type]}</span>
+          ${typeBadges(t)}
           <span class="badge b-${t.dueState}">${dueText(t)}</span>
         </div>
         <h3 class="task-name">${esc(t.name)}</h3>
@@ -1799,12 +1809,18 @@ $('#btn-new').addEventListener('click', () => {
   openModal();
 });
 
+// ตัวเลือกประเภทงาน (checkbox หลายข้อ)
+$('#f-types').innerHTML = Object.entries(LABEL.type).map(([v, l]) =>
+  `<input type="checkbox" name="types" id="f-type-${v}" value="${v}"><label for="f-type-${v}" class="tt-${v}">${l}</label>`).join('');
+const getFormTypes = () => [...form.querySelectorAll('input[name="types"]:checked')].map((i) => i.value);
+const setFormTypes = (list) => form.querySelectorAll('input[name="types"]').forEach((i) => { i.checked = list.includes(i.value); });
+
 function openEdit(task) {
   if (!task) return;
   editing = task;
   form.reset();
   form.company.value = task.company || '';
-  form.type.value = task.type;
+  setFormTypes(taskTypes(task));
   form.urgency.value = task.urgency;
   form.name.value = task.name;
   form.objective.value = task.objective;
@@ -1951,6 +1967,8 @@ function showFormError(msg) {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!form.company.value) return showFormError('กรุณาเลือกบริษัท');
+  const types = getFormTypes();
+  if (!types.length) return showFormError('กรุณาเลือกประเภทงานอย่างน้อย 1 ประเภท');
   const fields = ['name', 'objective', 'startDate', 'endDate', 'budget'];
   const missing = fields.filter((f) => !form[f].value.trim());
   if (missing.length) {
@@ -1971,7 +1989,7 @@ form.addEventListener('submit', async (e) => {
 
   const fd = new FormData();
   fd.append('company', form.company.value);
-  fd.append('type', form.type.value);
+  fd.append('types', JSON.stringify(types));
   fd.append('urgency', form.urgency.value);
   fields.forEach((f) => fd.append(f, form[f].value.trim()));
   fd.append('owners', JSON.stringify(formOwners));
@@ -2486,7 +2504,7 @@ function renderBudgetMonth(s) {
       <tbody>${s.tasks.map((t) => `
         <tr class="clickable" data-id="${t.id}" title="คลิกเพื่อแก้ไข">
           <td><div style="font-weight:500">${esc(t.name)}</div>
-            <div class="w-meta"><span class="badge b-${t.type}">${LABEL.type[t.type]}</span><span class="badge b-${t.dueState}">${LABEL.due[t.dueState]}</span></div></td>
+            <div class="w-meta">${typeBadges(t)}<span class="badge b-${t.dueState}">${LABEL.due[t.dueState]}</span></div></td>
           <td style="white-space:nowrap">${fmtDate(t.startDate)}</td>
           <td class="num">${fmtMoney(t.budget)}</td>
           <td class="num">${s.spent ? fmtPct((t.budget / s.spent) * 100) : '–'}</td>

@@ -16,7 +16,7 @@ const MAX_LINKS = 20;
 const MAX_BUDGET_ITEMS = 50;
 const NEAR_DUE_DAYS = 7;
 
-const TYPES = ['offline', 'online'];
+const TASK_TYPES = ['marketing', 'content', 'graphic', 'it']; // การตลาด / คอนเทนต์ / กราฟฟิก / ไอที (เลือกได้หลายข้อ)
 const URGENCIES = ['urgent', 'normal'];
 const STATUSES = ['pending', 'in_progress', 'done'];
 const KPI_RESULTS = ['pass', 'fail'];
@@ -182,6 +182,17 @@ function parseOwners(raw) {
   return { owners };
 }
 
+// ประเภทงานหลายข้อ: JSON array (หรือ array) จาก TASK_TYPES — ตัดตัวซ้ำ + เรียงตามลำดับมาตรฐาน
+function parseTaskTypes(raw) {
+  let list = raw;
+  if (typeof raw === 'string') {
+    try { list = raw.trim() ? JSON.parse(raw) : []; } catch { return { error: 'รูปแบบประเภทงานไม่ถูกต้อง' }; }
+  }
+  list = [].concat(list ?? []);
+  if (list.some((v) => !TASK_TYPES.includes(v))) return { error: 'ประเภทงานไม่ถูกต้อง' };
+  return { types: TASK_TYPES.filter((v) => list.includes(v)) };
+}
+
 function validateTask(body, partial = false) {
   const errors = [];
   const out = {};
@@ -195,7 +206,7 @@ function validateTask(body, partial = false) {
   }
   const has = (k) => body[k] !== undefined && body[k] !== '';
 
-  const need = ['company', 'type', 'name', 'objective', 'startDate', 'endDate', 'budget', 'urgency', 'owner'];
+  const need = ['company', 'name', 'objective', 'startDate', 'endDate', 'budget', 'urgency', 'owner'];
   const missingMsg = { owner: 'กรุณาเพิ่มผู้รับผิดชอบอย่างน้อย 1 คน', company: 'กรุณาเลือกบริษัท' };
   if (!partial) {
     for (const k of need) if (!has(k)) errors.push(missingMsg[k] || `กรุณากรอก ${k}`);
@@ -205,9 +216,11 @@ function validateTask(body, partial = false) {
     if (!COMPANIES.includes(body.company)) errors.push('บริษัทไม่ถูกต้อง');
     else out.company = body.company;
   }
-  if (has('type')) {
-    if (!TYPES.includes(body.type)) errors.push('ประเภทงานไม่ถูกต้อง');
-    else out.type = body.type;
+  if (body.types !== undefined || !partial) {
+    const { error, types } = parseTaskTypes(body.types);
+    if (error) errors.push(error);
+    else if (!types.length) errors.push('กรุณาเลือกประเภทงานอย่างน้อย 1 ประเภท');
+    else out.types = types;
   }
   for (const k of ['name', 'objective', 'owner']) {
     if (has(k)) out[k] = String(body[k]).trim().slice(0, 1000);

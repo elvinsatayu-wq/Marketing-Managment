@@ -176,11 +176,11 @@ function recordFailure(key) {
   else f.count++;
 }
 
+// หาอีเมลของบัญชีจาก profiles.username หรือ profiles.email เท่านั้น — ห้ามใช้ display_name เพราะเปลี่ยนได้และซ้ำกันได้
 async function resolveEmail(identifier) {
-  if (identifier.includes('@')) return identifier.toLowerCase();
   const { data, error } = await db.getClient().rpc('login_email', { p_identifier: identifier });
   if (error) {
-    console.error('แปลง username เป็นอีเมลไม่สำเร็จ (รัน supabase/schema.sql แล้วหรือยัง?):', error.message);
+    console.error('ค้นหาบัญชีจาก username/อีเมลไม่สำเร็จ (รัน supabase/schema.sql แล้วหรือยัง?):', error.message);
     return null;
   }
   return data || null;

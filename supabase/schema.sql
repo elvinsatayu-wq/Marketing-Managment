@@ -4,7 +4,8 @@
 -- ---------- กิจกรรมการตลาด ----------
 create table if not exists public.tasks (
   id                  uuid primary key default gen_random_uuid(),
-  type                text not null check (type in ('online', 'offline')),
+  type                text,                               -- ประเภทเดิม (online/offline) ของข้อมูลเก่า — ใช้ types แทน
+  types               text[] not null default '{}',       -- marketing / content / graphic / it (เลือกได้หลายข้อ)
   name                text not null,
   objective           text not null default '',
   owner               text not null default '',          -- = owners คั่นด้วย ", "
@@ -93,12 +94,17 @@ from auth.users u
 where u.email is not null
 on conflict do nothing;
 
--- แปลง username → email ตอน login (เรียกก่อนเข้าสู่ระบบจึงต้องให้ anon เรียกได้ — คืนเฉพาะอีเมลของ username ที่ระบุ)
+-- หาอีเมลของบัญชีตอน login จาก username หรือ email เท่านั้น ห้ามอ้างอิง display_name (เรียกก่อนเข้าสู่ระบบจึงต้องให้ anon เรียกได้)
+-- ถ้า identifier ตรงกับอีเมลของบัญชีหนึ่งและ username ของอีกบัญชี จะยึดอีเมลก่อน
 -- drop ก่อนเพราะ create or replace เปลี่ยนชื่อพารามิเตอร์ไม่ได้ (ฐานข้อมูลเก่าอาจมี p_username) — auth.js เรียกด้วย p_identifier
 drop function if exists public.login_email(text);
 create or replace function public.login_email(p_identifier text)
 returns text language sql stable security definer set search_path = public as $$
-  select email from public.profiles where lower(username) = lower(trim(p_identifier)) limit 1;
+  select email from public.profiles
+  where lower(username) = lower(trim(p_identifier))
+     or lower(email) = lower(trim(p_identifier))
+  order by lower(email) = lower(trim(p_identifier)) desc
+  limit 1;
 $$;
 revoke all on function public.login_email(text) from public;
 grant execute on function public.login_email(text) to anon, authenticated;
@@ -107,6 +113,13 @@ grant execute on function public.login_email(text) to anon, authenticated;
 -- '' = ข้อมูลเก่าที่ยังไม่ได้ระบุบริษัท
 alter table public.tasks add column if not exists company text not null default '' check (company in ('', 'biowood', 'woodmate', 'econic'));
 alter table public.media add column if not exists company text not null default '' check (company in ('', 'biowood', 'woodmate', 'econic'));
+
+-- ---------- ประเภทงานหลายข้อ (แทน online/offline) ----------
+alter table public.tasks add column if not exists types text[] not null default '{}';
+alter table public.tasks drop constraint if exists tasks_type_check;
+alter table public.tasks alter column type drop not null;
+alter table public.tasks drop constraint if exists tasks_types_check;
+alter table public.tasks add constraint tasks_types_check check (types <@ array['marketing', 'content', 'graphic', 'it']::text[]);
 
 -- ---------- ผู้สร้าง / ผู้แก้ไขล่าสุด (Data Ownership) ----------
 -- server ส่ง id ของผู้ใช้ที่ login มาให้ทุกครั้ง (ค่าเริ่มต้น auth.uid() กันกรณีเขียนตรงจาก client อื่น)
