@@ -53,7 +53,8 @@ public/uploads/      ไฟล์แนบที่อัปโหลด (ตั
 | field | ค่า |
 |---|---|
 | `id` | UUID |
-| `company` | `biowood` (Biowood) \| `woodmate` (Wood mate) \| `econic` (Econic) — บังคับตอนสร้าง; ข้อมูลเก่า = `''` (ไม่แสดง badge, บังคับเลือกเมื่อแก้ไขผ่านฟอร์ม) — ค่าใน `COMPANIES` (server.js) / `COMPANY_LABEL` (index.html), class สี `co-*` |
+| `companies` | `string[]` บริษัท เลือกได้หลายบริษัท (อย่างน้อย 1): `biowood` (Biowood) \| `woodmate` (Wood mate) \| `econic` (Econic) — ส่งเป็น JSON string, validate ใน `parseCompanies()` (ตัดตัวซ้ำ + เรียงตาม `COMPANIES`); ยังรับ `company` เดี่ยวแบบเดิมได้ — ค่าใน `COMPANIES` (server.js) / `COMPANY_LABEL` (index.html), class สี `co-*`; client ใช้ `itemCompanies(x)` (fallback เป็น `company` สำหรับงานเก่า/แผนสื่อ) |
+| `company` | string = `companies[0]` — server ตั้งให้อัตโนมัติ; ข้อมูลเก่า = `''` (ไม่แสดง badge, บังคับเลือกเมื่อแก้ไขผ่านฟอร์ม) |
 | `types` | `string[]` ประเภทงาน เลือกได้หลายข้อ (อย่างน้อย 1): `marketing` (การตลาด) \| `content` (คอนเทนต์) \| `graphic` (กราฟฟิก) \| `it` (ไอที) — ส่งเป็น JSON string, validate ใน `parseTaskTypes()` (ตัดตัวซ้ำ + เรียงตาม `TASK_TYPES`); ป้ายใน `LABEL.type`, สี class `tt-*`; หน้ารายการกรองด้วย `#f-type` (งานที่มีประเภทนั้นอยู่ใน `types`) |
 | `type` | (เลิกใช้) `online` \| `offline` ของงานเก่า — คอลัมน์ยังอยู่แต่ไม่แสดง; งานเก่าไม่มี `types` → ไม่มี badge และต้องเลือกประเภทเมื่อแก้ไขผ่านฟอร์ม (client ใช้ `taskTypes(t)`) |
 | `name`, `objective` | string |

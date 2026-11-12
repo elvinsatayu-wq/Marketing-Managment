@@ -114,6 +114,12 @@ grant execute on function public.login_email(text) to anon, authenticated;
 alter table public.tasks add column if not exists company text not null default '' check (company in ('', 'biowood', 'woodmate', 'econic'));
 alter table public.media add column if not exists company text not null default '' check (company in ('', 'biowood', 'woodmate', 'econic'));
 
+-- กิจกรรมเลือกได้หลายบริษัท (company = บริษัทแรก เก็บไว้ให้ข้อมูลเดิมใช้ต่อได้)
+alter table public.tasks add column if not exists companies text[] not null default '{}';
+alter table public.tasks drop constraint if exists tasks_companies_check;
+alter table public.tasks add constraint tasks_companies_check check (companies <@ array['biowood', 'woodmate', 'econic']::text[]);
+update public.tasks set companies = array[company] where company <> '' and companies = '{}';
+
 -- ---------- ประเภทงานหลายข้อ (แทน online/offline) ----------
 alter table public.tasks add column if not exists types text[] not null default '{}';
 alter table public.tasks drop constraint if exists tasks_type_check;

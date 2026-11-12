@@ -248,7 +248,9 @@
   }
   .gantt-label:hover, .gantt-label:focus-visible { color: var(--primary); outline: none; }
   .gantt-name { display: block; overflow: hidden; text-overflow: ellipsis; }
-  .gantt-co { display: block; font-size: 11px; line-height: 1.2; font-weight: 600; color: var(--c); }
+  .gantt-cos { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 1.2; font-weight: 600; }
+  .gantt-co { color: var(--c); }
+  .gantt-co + .gantt-co::before { content: ' · '; color: var(--muted); }
   /* ความกว้างรวม (ชื่อ + กราฟ) อย่างน้อย 600px เท่าเดิม — จอคอมไม่ต้องเลื่อน, มือถือปัดดูได้ */
   .gantt-wrap { position: relative; flex: 1 0 calc(600px - var(--gantt-label-w)); min-width: calc(600px - var(--gantt-label-w)); }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
@@ -452,6 +454,7 @@
   .seg.three { grid-template-columns: repeat(3, 1fr); }
   .seg.four { grid-template-columns: repeat(4, 1fr); }
   .seg.toned input:checked + label { border-color: var(--c); background: var(--s); color: var(--c); }
+  .seg.multi input:checked + label::after { content: '✓'; font-size: 12px; }
   .checks { display: flex; flex-wrap: wrap; gap: 8px; }
   .checks input { position: absolute; opacity: 0; pointer-events: none; }
   .checks label {
@@ -988,8 +991,8 @@
       <div class="form-error" id="form-error"></div>
       <div class="form-grid">
         <div class="field full">
-          <label>บริษัท <span class="req">*</span></label>
-          <div class="seg three toned" id="f-company"></div>
+          <label>บริษัท <span class="req">*</span> <span style="font-weight:400;color:var(--muted)">(เลือกได้มากกว่า 1)</span></label>
+          <div class="seg three toned multi" id="f-company"></div>
         </div>
         <div class="field">
           <label>ประเภทงาน <span class="req">*</span> <span style="font-weight:400;color:var(--muted)">(เลือกได้มากกว่า 1)</span></label>
@@ -1177,7 +1180,9 @@ const MEDIA_LABEL = {
 const TONE_PREFIX = { mediaType: 'mt', purpose: 'pp', status: 'ms', company: 'co' };
 const tone = (field, v) => `${TONE_PREFIX[field]}-${v}`;
 // badge บริษัทของกิจกรรม/แผนสื่อ (ข้อมูลเก่าที่ยังไม่ระบุบริษัทจะไม่แสดง)
-const companyBadge = (x) => x.company ? `<span class="badge tone ${tone('company', x.company)}">${COMPANY_LABEL[x.company]}</span>` : '';
+// กิจกรรมเลือกได้หลายบริษัท (companies) — แผนสื่อ/งานเก่ามีแค่ company เดี่ยว
+const itemCompanies = (x) => (x.companies?.length ? x.companies : (x.company ? [x.company] : [])).filter((v) => COMPANY_LABEL[v]);
+const companyBadge = (x) => itemCompanies(x).map((c) => `<span class="badge tone ${tone('company', c)}">${COMPANY_LABEL[c]}</span>`).join('');
 // ประเภทงาน (เลือกได้หลายข้อ) — งานเก่าที่เป็น online/offline ไม่มี types → []
 const taskTypes = (t) => (t.types || []).filter((v) => LABEL.type[v]);
 const typeBadges = (t) => taskTypes(t).map((v) => `<span class="badge tt tt-${v}">${LABEL.type[v]}</span>`).join('');
@@ -1421,8 +1426,9 @@ function renderGantt(tasks) {
     const el = document.createElement('div');
     el.className = 'gantt-label';
     el.tabIndex = 0;
-    el.title = t.company ? `${COMPANY_LABEL[t.company]} · ${t.name}` : t.name;
-    el.innerHTML = `${t.company ? `<span class="gantt-co ${tone('company', t.company)}">${COMPANY_LABEL[t.company]}</span>` : ''}<span class="gantt-name">${t.urgency === 'urgent' ? '🔴 ' : ''}${esc(t.name)}</span>`;
+    const cos = itemCompanies(t);
+    el.title = cos.length ? `${cos.map((c) => COMPANY_LABEL[c]).join(', ')} · ${t.name}` : t.name;
+    el.innerHTML = `${cos.length ? `<span class="gantt-cos">${cos.map((c) => `<span class="gantt-co ${tone('company', c)}">${COMPANY_LABEL[c]}</span>`).join('')}</span>` : ''}<span class="gantt-name">${t.urgency === 'urgent' ? '🔴 ' : ''}${esc(t.name)}</span>`;
     el.addEventListener('click', () => openEdit(t));
     el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(t); } });
     return el;
@@ -1499,7 +1505,7 @@ function renderGantt(tasks) {
             label: (item) => {
               const t = rows[item.dataIndex];
               return [
-                ...(t.company ? [`บริษัท: ${COMPANY_LABEL[t.company]}`] : []),
+                ...(itemCompanies(t).length ? [`บริษัท: ${itemCompanies(t).map((c) => COMPANY_LABEL[c]).join(', ')}`] : []),
                 `${fmtDate(t.startDate)} – ${fmtDate(t.endDate)}`,
                 `ประเภท: ${taskTypes(t).map((v) => LABEL.type[v]).join(', ') || '-'} · ${LABEL.urgency[t.urgency]}`,
                 `ผู้รับผิดชอบ: ${t.owner}`,
@@ -1782,7 +1788,9 @@ $('#task-list').addEventListener('change', async (e) => {
 
 $('#f-kpi-result').innerHTML = kpiResultOptions('');
 $('#f-company').innerHTML = Object.entries(COMPANY_LABEL).map(([v, l]) =>
-  `<input type="radio" name="company" id="company-${v}" value="${v}"><label for="company-${v}" class="${tone('company', v)}">${l}</label>`).join('');
+  `<input type="checkbox" name="companies" id="company-${v}" value="${v}"><label for="company-${v}" class="${tone('company', v)}">${l}</label>`).join('');
+const getFormCompanies = () => [...$('#f-company').querySelectorAll('input:checked')].map((i) => i.value);
+const setFormCompanies = (list) => $('#f-company').querySelectorAll('input').forEach((i) => { i.checked = list.includes(i.value); });
 
 // ---------- Modal form ----------
 const form = $('#task-form');
@@ -1819,7 +1827,7 @@ function openEdit(task) {
   if (!task) return;
   editing = task;
   form.reset();
-  form.company.value = task.company || '';
+  setFormCompanies(itemCompanies(task));
   setFormTypes(taskTypes(task));
   form.urgency.value = task.urgency;
   form.name.value = task.name;
@@ -1966,7 +1974,8 @@ function showFormError(msg) {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (!form.company.value) return showFormError('กรุณาเลือกบริษัท');
+  const companies = getFormCompanies();
+  if (!companies.length) return showFormError('กรุณาเลือกบริษัทอย่างน้อย 1 บริษัท');
   const types = getFormTypes();
   if (!types.length) return showFormError('กรุณาเลือกประเภทงานอย่างน้อย 1 ประเภท');
   const fields = ['name', 'objective', 'startDate', 'endDate', 'budget'];
@@ -1988,7 +1997,7 @@ form.addEventListener('submit', async (e) => {
   if (linkError) return showFormError(linkError);
 
   const fd = new FormData();
-  fd.append('company', form.company.value);
+  fd.append('companies', JSON.stringify(companies));
   fd.append('types', JSON.stringify(types));
   fd.append('urgency', form.urgency.value);
   fields.forEach((f) => fd.append(f, form[f].value.trim()));

@@ -193,6 +193,17 @@ function parseTaskTypes(raw) {
   return { types: TASK_TYPES.filter((v) => list.includes(v)) };
 }
 
+// บริษัทของกิจกรรม (เลือกได้หลายบริษัท): JSON array (หรือ array) จาก COMPANIES — ตัดตัวซ้ำ + เรียงตามลำดับมาตรฐาน
+function parseCompanies(raw) {
+  let list = raw;
+  if (typeof raw === 'string') {
+    try { list = raw.trim() ? JSON.parse(raw) : []; } catch { return { error: 'รูปแบบบริษัทไม่ถูกต้อง' }; }
+  }
+  list = [].concat(list ?? []);
+  if (list.some((v) => !COMPANIES.includes(v))) return { error: 'บริษัทไม่ถูกต้อง' };
+  return { companies: COMPANIES.filter((v) => list.includes(v)) };
+}
+
 function validateTask(body, partial = false) {
   const errors = [];
   const out = {};
@@ -206,15 +217,19 @@ function validateTask(body, partial = false) {
   }
   const has = (k) => body[k] !== undefined && body[k] !== '';
 
-  const need = ['company', 'name', 'objective', 'startDate', 'endDate', 'budget', 'urgency', 'owner'];
-  const missingMsg = { owner: 'กรุณาเพิ่มผู้รับผิดชอบอย่างน้อย 1 คน', company: 'กรุณาเลือกบริษัท' };
+  const need = ['name', 'objective', 'startDate', 'endDate', 'budget', 'urgency', 'owner'];
+  const missingMsg = { owner: 'กรุณาเพิ่มผู้รับผิดชอบอย่างน้อย 1 คน' };
   if (!partial) {
     for (const k of need) if (!has(k)) errors.push(missingMsg[k] || `กรุณากรอก ${k}`);
   }
 
-  if (has('company')) {
-    if (!COMPANIES.includes(body.company)) errors.push('บริษัทไม่ถูกต้อง');
-    else out.company = body.company;
+  // บริษัทหลายบริษัท (companies) — รับ company เดี่ยวแบบเดิมได้ด้วย; company = บริษัทแรก (เก็บไว้ให้ข้อมูล/โค้ดเดิมใช้ต่อได้)
+  const companiesRaw = body.companies !== undefined ? body.companies : (has('company') ? [body.company] : undefined);
+  if (companiesRaw !== undefined || !partial) {
+    const { error, companies } = parseCompanies(companiesRaw);
+    if (error) errors.push(error);
+    else if (!companies.length) errors.push('กรุณาเลือกบริษัทอย่างน้อย 1 บริษัท');
+    else { out.companies = companies; out.company = companies[0]; }
   }
   if (body.types !== undefined || !partial) {
     const { error, types } = parseTaskTypes(body.types);

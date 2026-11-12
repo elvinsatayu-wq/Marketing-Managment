@@ -30,6 +30,7 @@ const iso = (v) => (v ? new Date(v).toISOString() : '');
 const taskToRow = (t) => ({
   id: t.id,
   company: t.company || '',
+  companies: t.companies?.length ? t.companies : (t.company ? [t.company] : []),
   type: t.type || null, // ประเภทเดิม (online/offline) — เหลือเฉพาะข้อมูลเก่า
   types: t.types || [],
   name: t.name,
@@ -56,6 +57,7 @@ const taskToRow = (t) => ({
 const rowToTask = (r) => ({
   id: r.id,
   company: r.company || '',
+  companies: r.companies?.length ? r.companies : (r.company ? [r.company] : []),
   type: r.type || '',
   types: r.types || [],
   name: r.name,
